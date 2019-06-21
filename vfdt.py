@@ -310,65 +310,58 @@ class Vfdt:
         self.tau = tau
         self.root = VfdtNode(features)
         self.n_examples_processed = 0
-        # print(self.features, self.delta, self.tau, self.n_examples_processed)
-        # self.print_tree()
-        # print("--- / __init__ ---")
 
-    # update the tree by adding one or many training example(s)
-    def update(self, X, y):
+    def fit(self, X, y):
+        """Train the tree on an array of samples.
+
+        Arguments:
+            X : {array-like, sparse matrix}, shape = [n_samples, n_features]
+                Training vectors, where n_samples is the number of samples and
+                n_features is the number of features.
+            y : array-like, shape = [n_samples]
+                Target values.
+        """
         X, y = check_X_y(X, y)
         for x, _y in zip(X, y):
-            self.__update(x, _y)
-        # print("Update!")
-        # print("X {}: {}".format(type(X), X))
-        # print("y {}: {}".format(type(y), y))
-        # self.print_tree()
-        # print("---")
-        # if isinstance(y, (np.ndarray, list)):
-        #     for x, _y in zip(X, y):
-        #         self.__update(x, _y)
-        # else:
-        #     self.__update(X, y)
-        # self.print_tree()
-        # print("---")
-        # print("End update! n_examples_processed={}".format(
-        #     self.n_examples_processed))
-        # print("--- --- ---")
+            self.__fit(x, _y)
 
-    # update the tree by adding one training example
-    def __update(self, x, _y):
-        self.n_examples_processed += 1
-        node = self.root.sort_example(x)
-        node.update_stats(x, _y)
-
-        result = node.attempt_split(self.delta, self.nmin, self.tau)
-        if result is not None:
-            feature = result[0]
-            value = result[1]
-            self.node_split(node, feature, value)
-
-    # split node, produce children
-    def node_split(self, node, split_feature, split_value):
-        features = node.possible_split_features
-        # print('node_split')
-        left = VfdtNode(features)
-        right = VfdtNode(features)
-        node.add_children(split_feature, split_value, left, right)
-
-    # predict test example's classification
     def predict(self, X):
+        """Predict the class of an array of samples.
+
+        Arguments:
+            X : {array-like}, shape = [n_samples, n_features]
+                New data to predict.
+        Returns:
+            y_pred : {array-like} shape = [n_samples]
+                The predicted labels.
+        """
         X = check_array(X)
         return [self.__predict(x) for x in X]
-        # if isinstance(X, (np.ndarray, list)):
-        #     return [self.__predict(x) for x in X]
-        # else:
-        #     leaf = self.__predict(X)
 
-    def __predict(self, x):
-        leaf = self.root.sort_example(x)
-        return leaf.most_frequent()
+    def fit_predict(self, X, y):
+        """First predicts the class of the samples, then trains on them.
+
+        Arguments:
+            X : {array-like, sparse matrix}, shape = [n_samples, n_features]
+                Training vectors, where n_samples is the number of samples and
+                n_features is the number of features.
+            y : array-like, shape = [n_samples]
+                Target values.
+
+        Returns:
+            y_pred : {array-like} shape = [n_samples]
+                The predicted labels.
+        """
+        y_pred = self.predict(X)
+        self.fit(X, y)
+        return y_pred
 
     def print_tree(self, node=None):
+        """Prints a representation of the tree
+
+        Keyword Arguments:
+            node VfdtNode -- Root node of the tree to print (default: {None})
+        """
         if node is None:
             self.print_tree(self.root)
         elif node.is_leaf():
@@ -377,6 +370,42 @@ class Vfdt:
             print(node.split_feature)
             self.print_tree(node.left_child)
             self.print_tree(node.right_child)
+
+    def __fit(self, x, _y):
+        """Train the tree on a single sample.
+
+        Arguments:
+            x : {array-like}, shape = [n_features]
+                Training vector, where n_features is the number of features.
+            _y : integer
+                Target value.
+        """
+        self.n_examples_processed += 1
+        node = self.root.sort_example(x)
+        node.update_stats(x, _y)
+
+        result = node.attempt_split(self.delta, self.nmin, self.tau)
+        if result is not None:
+            feature = result[0]
+            value = result[1]
+            self.__node_split(node, feature, value)
+
+    def __predict(self, x):
+        """Predict the class of a single samples.
+
+        Arguments:
+            x : {array-like}, shape = [n_features]
+                New data to predict.
+        """
+        leaf = self.root.sort_example(x)
+        return leaf.most_frequent()
+
+    def __node_split(self, node, split_feature, split_value):
+        features = node.possible_split_features
+        # print('node_split')
+        left = VfdtNode(features)
+        right = VfdtNode(features)
+        node.add_children(split_feature, split_value, left, right)
 
 
 def calc_metrics(y_test, y_pred, row_name):
@@ -446,7 +475,7 @@ def test_run():
         x_train = training_set[:, :-1]
         y_train = training_set[:, -1]
         for x, y in zip(x_train, y_train):
-            tree.update(x, y)  # fit data
+            tree.fit(x, y)  # fit data
         y_pred = tree.predict(x_test)
         print('Training set:', n, end=', ')
         print('ACCURACY: %.4f' % accuracy_score(y_test, y_pred))
