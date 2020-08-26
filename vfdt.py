@@ -9,12 +9,12 @@
 # ver 0.03
 
 
-import numpy as np
-import pandas as pd
-import time
 from itertools import combinations
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.utils import check_array, check_X_y
+import numpy as np
+import pandas as pd
+import time
 
 
 # VFDT node class

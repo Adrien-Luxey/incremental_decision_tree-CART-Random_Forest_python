@@ -8,15 +8,17 @@
 # 06/06/2018
 # ver 0.01
 
-import time
+from itertools import combinations
+from multiprocessing import Pool
+from sklearn.metrics import accuracy_score
+from sklearn.utils import check_array, check_X_y
 import numpy as np
 import pandas as pd
-from multiprocessing import Pool
-from itertools import combinations
-from sklearn.metrics import accuracy_score
-
+import time
 
 # EFDT node class
+
+
 class EfdtNode:
     def __init__(self, possible_split_features):
         """
@@ -46,10 +48,12 @@ class EfdtNode:
             left_value = split_value[0]
             right_value = split_value[1]
             if len(left_value) <= 1:
-                new_features = [None if f == split_feature else f for f in left.possible_split_features]
+                new_features = [
+                    None if f == split_feature else f for f in left.possible_split_features]
                 left.possible_split_features = new_features
             if len(right_value) <= 1:
-                new_features = [None if f == split_feature else f for f in right.possible_split_features]
+                new_features = [
+                    None if f == split_feature else f for f in right.possible_split_features]
                 right.possible_split_features = new_features
 
     def is_leaf(self):
@@ -82,7 +86,8 @@ class EfdtNode:
     # the most frequent classification
     def most_frequent(self):
         if self.class_frequency:
-            prediction = max(self.class_frequency, key=self.class_frequency.get)
+            prediction = max(self.class_frequency,
+                             key=self.class_frequency.get)
         else:
             # if self.class_frequency dict is empty, go back to parent
             class_frequency = self.parent.class_frequency
@@ -245,9 +250,10 @@ class EfdtNode:
         feature_values = list(njk.keys())  # list() is essential
         if not isinstance(feature_values[0], str):  # numeric feature values
             sort = np.array(sorted(feature_values))
-            split = (sort[0:-1] + sort[1:])/2   # vectorized computation, like in R
+            # vectorized computation, like in R
+            split = (sort[0:-1] + sort[1:])/2
 
-            D1_class_frequency = {j:0 for j in class_frequency.keys()}
+            D1_class_frequency = {j: 0 for j in class_frequency.keys()}
             for index in range(len(split)):
                 nk = njk[sort[index]]
 
@@ -261,7 +267,8 @@ class EfdtNode:
                 D2_class_frequency = {}
                 for key, value in class_frequency.items():
                     if key in D1_class_frequency:
-                        D2_class_frequency[key] = value - D1_class_frequency[key]
+                        D2_class_frequency[key] = value - \
+                            D1_class_frequency[key]
                     else:
                         D2_class_frequency[key] = value
 
@@ -312,9 +319,11 @@ class EfdtNode:
                 comb = self.select_combinations(feature_values)
                 for i in comb:
                     left = list(i)
-                    D1_class_frequency = {key: 0 for key in class_frequency.keys()}
-                    D2_class_frequency = {key: 0 for key in class_frequency.keys()}
-                    for j,k in njk.items():
+                    D1_class_frequency = {
+                        key: 0 for key in class_frequency.keys()}
+                    D2_class_frequency = {
+                        key: 0 for key in class_frequency.keys()}
+                    for j, k in njk.items():
                         for key, value in class_frequency.items():
                             if j in left:
                                 if key in k:
@@ -426,7 +435,7 @@ def test_run():
     ''' change month string to int '''
     def month_str_to_int(df1):
         import calendar
-        d = dict((v.lower(),k) for k,v in enumerate(calendar.month_abbr))
+        d = dict((v.lower(), k) for k, v in enumerate(calendar.month_abbr))
         df1.month = df1.month.map(d)
     month_str_to_int(df)
 
